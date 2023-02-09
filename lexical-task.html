@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Lexical Decision Task</title>
+		<script src="https://unpkg.com/jspsych@7.3.1"></script>
+		<script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+		<script src="https://unpkg.com/@jspsych/plugin-image-keyboard-response@1.1.2"></script>
+		<link
+			href="https://unpkg.com/jspsych@7.3.1/css/jspsych.css"
+			rel="stylesheet"
+			type="text/css" />
+	</head>
+	<body></body>
+	<script>
+		/** High level description/sanity check:
+		   *  Test if syntacticaly similarity/familiarity of words makes it harder to differentiate them,
+		   *  or if it makes participant more vigilant about their differences
+		   *
+		   *  Input: 4 categories
+		   *  - 10 randomly generated real + common words
+		   *  - 10 randomly generated real + rare words
+		   *  - 10 Phonetically sound non-words that look and sound a lot like each of the real + common words
+		   *  - 10 Phonetically sound non-words that look and sound a lot like each of the real + rare words
+		   *  - 10 Scrambled versions of the real + common words (not phonentically sound)
+		   *  - 10 Scrambled versions of the real + rare words (not phonentically sound)
+		   *  - 10 Jibberish
+		   *  Randomize all of them and have participant choose between f for word and j for non-word
+		   *
+		   *  Data collection:
+		   *  - Whether each decision was correct
+		   *  - Reaction time
+
+		  /* initialize jsPsych */
+		var jsPsych = initJsPsych({
+			on_finish: function () {
+				jsPsych.data.displayData();
+			},
+		});
+
+		/* global vars */
+		var timeline = [];
+		var trial_number = 1;
+
+		/* helper functions */
+		function wordScramble(word) {
+			var wordArray = word.split(""),
+				n = wordArray.length;
+
+			for (var i = n - 1; i > 0; i--) {
+				var j = Math.floor(Math.random() * (i + 1));
+				var tmp = wordArray[i];
+				wordArray[i] = wordArray[j];
+				wordArray[j] = tmp;
+			}
+
+			if (wordArray.join("") === word) {
+				wordScramble(word);
+			} else {
+				return wordArray.join("");
+			}
+		}
+
+		function wordArrayScramble(array) {
+			for (var i = 0; i < array.length; i++) {
+				array[i] = wordScramble(array[i]);
+			}
+			return array;
+		}
+
+		function commonScrambleStimuliGen(word_list) {
+			var arr = [];
+			wordArrayScramble(word_list);
+			for (var i = 0; i < 10; i++) {
+				arr[i] = {
+					stimulus: word_list[i],
+					correct_response: "j",
+					stimulus_type: "common_scramble",
+				};
+			}
+			return arr;
+		}
+
+		function rareScrambleStimuliGen(word_list) {
+			var arr = [];
+			wordArrayScramble(word_list);
+			for (var i = 0; i < 10; i++) {
+				arr[i] = {
+					stimulus: word_list[i],
+					correct_response: "j",
+					stimulus_type: "rare_scramble",
+				};
+			}
+			return arr;
+		}
+
+		//ok this could generate a valid word whoops
+		function jibberishGen() {
+			var jibLength = Math.floor(Math.random() * 8 + 4);
+			var wordArray = [];
+			for (var i = 0; i < jibLength; i++) {
+				wordArray[i] = String.fromCharCode(Math.floor(Math.random() * 26 + 97));
+			}
+			return wordArray.join("");
+		}
+
+		function jibArrayGen(num) {
+			jibArray = [];
+			for (var i = 0; i < num; i++) {
+				jibArray[i] = {
+					stimulus: jibberishGen(),
+					correct_response: "j",
+					stimulus_type: "jibberish",
+				};
+			}
+			return jibArray;
+		}
+
+		//but why doesn't concat work...
+		function arrConcat(ogArr, newArr) {
+			for (var i = 0; i < newArr.length; i++) {
+				ogArr.push(newArr[i]);
+			}
+		}
+
+		/* define trial stimuli array for timeline variables */
+		var common_word_list = [
+			"depend",
+			"winner",
+			"drink",
+			"tight",
+			"sofa",
+			"torn",
+			"neutral",
+			"drag",
+			"plot",
+			"disorder",
+		];
+
+		var rare_word_list = [
+			"comedogenic",
+			"retrophilia",
+			"poultice",
+			"motley",
+			"aperture",
+			"xylem",
+			"sophomorous",
+			"palladium",
+			"soliloquy",
+			"rhubarb",
+		];
+
+		var common_word_10 = [
+			{stimulus: "depend", correct_response: "f", stimulus_type: "common_real"},
+			{stimulus: "winner", correct_response: "f", stimulus_type: "common_real"},
+			{stimulus: "drink", correct_response: "f", stimulus_type: "common_real"},
+			{stimulus: "tight", correct_response: "f", stimulus_type: "common_real"},
+			{stimulus: "sofa", correct_response: "f", stimulus_type: "common_real"},
+			{stimulus: "torn", correct_response: "f", stimulus_type: "common_real"},
+			{
+				stimulus: "neutral",
+				correct_response: "f",
+				stimulus_type: "common_real",
+			},
+			{stimulus: "drag", correct_response: "f", stimulus_type: "common_real"},
+			{stimulus: "plot", correct_response: "f", stimulus_type: "common_real"},
+			{
+				stimulus: "disorder",
+				correct_response: "f",
+				stimulus_type: "common_real",
+			},
+		];
+
+		var rare_word_10 = [
+			{
+				stimulus: "comedogenic",
+				correct_response: "f",
+				stimulus_type: "rare_real",
+			},
+			{
+				stimulus: "retrophilia",
+				correct_response: "f",
+				stimulus_type: "rare_real",
+			},
+			{stimulus: "poultice", correct_response: "f", stimulus_type: "rare_real"},
+			{stimulus: "motley", correct_response: "f", stimulus_type: "rare_real"},
+			{stimulus: "aperture", correct_response: "f", stimulus_type: "rare_real"},
+			{stimulus: "xylem", correct_response: "f", stimulus_type: "rare_real"},
+			{
+				stimulus: "sophomorous",
+				correct_response: "f",
+				stimulus_type: "rare_real",
+			},
+			{
+				stimulus: "palladium",
+				correct_response: "f",
+				stimulus_type: "rare_real",
+			},
+			{
+				stimulus: "soliloquy",
+				correct_response: "f",
+				stimulus_type: "rare_real",
+			},
+			{stimulus: "rhubarb", correct_response: "f", stimulus_type: "rare_real"},
+		];
+
+		var common_word_dupe_10 = [
+			{stimulus: "pedenp", correct_response: "j", stimulus_type: "common_dupe"},
+			{stimulus: "wanner", correct_response: "j", stimulus_type: "common_dupe"},
+			{stimulus: "frink", correct_response: "j", stimulus_type: "common_dupe"},
+			{stimulus: "tigher", correct_response: "j", stimulus_type: "common_dupe"},
+			{stimulus: "siba", correct_response: "j", stimulus_type: "common_dupe"},
+			{stimulus: "thern", correct_response: "j", stimulus_type: "common_dupe"},
+			{
+				stimulus: "nuetral",
+				correct_response: "j",
+				stimulus_type: "common_dupe",
+			},
+			{stimulus: "drep", correct_response: "j", stimulus_type: "common_dupe"},
+			{stimulus: "floch", correct_response: "j", stimulus_type: "common_dupe"},
+			{
+				stimulus: "disorrdir",
+				correct_response: "j",
+				stimulus_type: "common_dupe",
+			},
+		];
+
+		var rare_word_dupe_10 = [
+			{
+				stimulus: "comadogenic",
+				correct_response: "j",
+				stimulus_type: "rare_dupe",
+			},
+			{
+				stimulus: "letterobilia",
+				correct_response: "j",
+				stimulus_type: "rare_dupe",
+			},
+			{stimulus: "poletish", correct_response: "j", stimulus_type: "rare_dupe"},
+			{stimulus: "cotley", correct_response: "j", stimulus_type: "rare_dupe"},
+			{
+				stimulus: "apercunture",
+				correct_response: "j",
+				stimulus_type: "rare_dupe",
+			},
+			{stimulus: "milex", correct_response: "j", stimulus_type: "rare_dupe"},
+			{
+				stimulus: "sapromorous",
+				correct_response: "j",
+				stimulus_type: "rare_dupe",
+			},
+			{
+				stimulus: "paradeium",
+				correct_response: "j",
+				stimulus_type: "rare_dupe",
+			},
+			{stimulus: "sorolite", correct_response: "j", stimulus_type: "rare_dupe"},
+			{stimulus: "bluerab", correct_response: "j", stimulus_type: "rare_dupe"},
+		];
+
+		var common_scramble_10 = commonScrambleStimuliGen(common_word_list);
+		var rare_scramble_10 = rareScrambleStimuliGen(rare_word_list);
+		var jibberish_10 = jibArrayGen(10);
+
+		var finalArray = [];
+		arrConcat(finalArray, common_word_10);
+		arrConcat(finalArray, common_word_10);
+		arrConcat(finalArray, rare_word_10);
+		arrConcat(finalArray, rare_word_10);
+		//after test trial found out it's really hard if there's a disproportionate amount of non-words
+		//so concat real word arrays twice each to balance out
+		arrConcat(finalArray, common_word_dupe_10);
+		arrConcat(finalArray, rare_word_dupe_10);
+		arrConcat(finalArray, common_scramble_10);
+		arrConcat(finalArray, rare_scramble_10);
+		arrConcat(finalArray, jibberish_10);
+
+		/* test stimuli */
+		var test_stimuli = finalArray;
+
+		/* welcome message trial */
+		var welcome = {
+			type: jsPsychHtmlKeyboardResponse,
+			stimulus: `
+		    <p>Welcome to the lexical decision experiment!</p>
+		    <br>
+		    <p>Starting from the next slide, you will see either a word or a non-word appear on the center of the screen.</p>
+		    <p>Press "<strong>f</strong>" if you see a word, or "<strong>j</strong>" on your keyboard as fast as you can if you see a non-word.</p>
+		    <p>There will be 70 rounds in total. Good luck!</p>
+		    <br>
+		    <p>Press any key to begin.</p>
+		    `,
+		};
+
+		/* trial */
+		var trial = {
+			type: jsPsychHtmlKeyboardResponse,
+			stimulus: jsPsych.timelineVariable("stimulus"),
+			choices: ["f", "j"],
+			data: {
+				task: "response",
+				stimulus_type: jsPsych.timelineVariable("stimulus_type"),
+				correct_response: jsPsych.timelineVariable("correct_response"),
+			},
+			on_finish: function (data) {
+				data.correct = jsPsych.pluginAPI.compareKeys(
+					data.response,
+					data.correct_response
+				);
+			},
+		};
+
+		var fixation = {
+			type: jsPsychHtmlKeyboardResponse,
+			stimulus: '<div style="font-size:60px;">+</div>',
+			choices: "NO_KEYS",
+			trial_duration: function () {
+				return jsPsych.randomization.sampleWithoutReplacement(
+					[250, 500, 750, 1000, 1250, 1500, 1750, 2000],
+					1
+				)[0];
+			},
+			data: {task: "fixation"},
+		};
+
+		/* test procedure */
+		var test_procedure = {
+			timeline: [fixation, trial],
+			timeline_variables: test_stimuli,
+			randomize_order: true,
+		};
+
+		/* results */
+		var debrief_block = {
+			type: jsPsychHtmlKeyboardResponse,
+			stimulus: function () {
+				var trials = jsPsych.data.get().filter({task: "response"});
+				var correct_trials = trials.filter({correct: true});
+				var accuracy = Math.round(
+					(correct_trials.count() / trials.count()) * 100
+				);
+				var rt = Math.round(correct_trials.select("rt").mean());
+
+				return `
+		      <p>You responded correctly on ${accuracy}% of the trials.</p>
+		      <p>Your average response time was ${rt}ms.</p>
+		      <p>Press any key to complete the experiment. Thank you!</p>`;
+			},
+		};
+
+		/* push everything to timeline */
+		timeline.push(welcome);
+		timeline.push(test_procedure);
+		timeline.push(debrief_block);
+
+		/* start the experiment */
+		jsPsych.run(timeline);
+	</script>
+</html>
